@@ -1,0 +1,856 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Overhead LM Dashboard</title>
+<style>
+  :root {
+    --bg: #07110c; --card: #0f1f17; --card-hi: #16301f; --border: #22402f;
+    --text: #eef6f0; --dim: #8fa89a; --accent: #4ade80; --warn: #fbbf24; --bad: #f87171; --blue: #60a5fa;
+    --face-bg: #0d1117;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  button { font: inherit; cursor: pointer; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 16px; }
+  header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .brand { font-size: 24px; font-weight: 900; letter-spacing: -0.5px; }
+  .brand span { color: var(--accent); }
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); font-weight: 700; font-size: 13px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--dim); }
+  .dot.on { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+  .dot.wait { background: var(--warn); }
+  .spacer { flex: 1; }
+  .seg { display: inline-flex; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 3px; }
+  .seg button { background: none; border: 0; color: var(--text); padding: 5px 11px; border-radius: 7px; font-weight: 700; font-size: 13px; }
+  .seg button.sel { background: var(--accent); color: #03140a; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 16px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  h2 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--dim); }
+  .shot-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .club-badge { font-size: 22px; font-weight: 900; }
+  .muted { color: var(--dim); font-size: 13px; }
+  .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .tile { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; min-width: 0; }
+  .tile.big { grid-column: span 1; }
+  .tile .l { color: var(--dim); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; }
+  .tile .v { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile.big .v { font-size: 40px; }
+  .tile .u { color: var(--dim); font-size: 14px; font-weight: 600; margin-left: 3px; }
+  .est { color: var(--warn); font-size: 10px; text-transform: none; margin-left: 4px; }
+  @media (max-width: 520px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tile.big .v { font-size: 32px; } }
+  .face { background: var(--face-bg); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-top: 12px; }
+  .face-title { font-weight: 800; margin-bottom: 4px; }
+  .face svg { display: block; width: 100%; max-width: 440px; height: auto; margin: 0 auto; }
+  .face-labels { display: flex; justify-content: space-between; max-width: 440px; margin: -4px auto 0; color: #8b949e; font-size: 10px; font-weight: 700; letter-spacing: 1px; }
+  .readouts { display: flex; gap: 16px; margin-top: 10px; }
+  .readouts > div { flex: 1; }
+  .readouts .v { font-size: 20px; font-weight: 800; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip { background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 999px; padding: 5px 12px; font-weight: 700; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+  .chip.sel { background: var(--accent); border-color: var(--accent); color: #03140a; }
+  .chip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .chart { background: #0b1a12; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .chart svg { display: block; width: 100%; height: auto; }
+  .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .controls label { color: var(--dim); font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+  input[type=number] { width: 72px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 5px 8px; font: inherit; }
+  .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+  .stats .tile .v { font-size: 20px; }
+  .table-wrap { overflow-x: auto; margin-top: 16px; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; position: sticky; top: 0; background: var(--card); }
+  th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: var(--card-hi); }
+  tbody tr.sel { background: var(--card-hi); outline: 1px solid var(--accent); }
+  td.e { color: var(--warn); }
+  .pair { text-align: center; padding: 36px 16px; }
+  .pair .code { font-size: clamp(40px, 9vw, 72px); font-weight: 900; letter-spacing: 8px; color: var(--accent); margin: 10px 0 6px; font-variant-numeric: tabular-nums; }
+  .pair ol { text-align: left; display: inline-block; color: var(--dim); margin: 14px 0; }
+  .btn { background: var(--card-hi); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 8px 14px; font-weight: 700; }
+  .btn.primary { background: var(--accent); color: #03140a; border-color: var(--accent); }
+  .banner { border: 1px solid var(--warn); color: var(--warn); border-radius: 12px; padding: 10px 14px; margin-bottom: 16px; background: rgba(251,191,36,0.06); }
+  .empty { color: var(--dim); text-align: center; padding: 30px; }
+  .flash { animation: flash 1.2s ease-out; }
+  @keyframes flash { from { box-shadow: 0 0 0 3px var(--accent); } to { box-shadow: 0 0 0 0 transparent; } }
+  .duo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+  @media (max-width: 1100px) { .duo { grid-template-columns: minmax(0, 1fr); } }
+  .duo .face { margin-top: 12px; }
+  .drows { margin-top: 8px; display: grid; gap: 4px; }
+  .drow { display: flex; align-items: center; gap: 8px; }
+  .drow i { width: 12px; height: 4px; border-radius: 2px; display: inline-block; }
+  .drow span { flex: 1; color: var(--dim); font-weight: 600; font-size: 13px; }
+  .drow b { font-size: 16px; }
+  .replay { margin-top: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 12px; }
+  .replay-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .replay-stage { position: relative; width: min(100%, 340px); aspect-ratio: 9 / 16; margin: 0 auto; background: #000; border-radius: 10px; overflow: hidden; }
+  .replay-stage video, .replay-stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+  .replay-stage svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .gap-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+  .gap-row .bar { flex: 1; height: 16px; background: #0b1a12; border-radius: 4px; position: relative; overflow: hidden; }
+  .gap-row .bar b { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; opacity: 0.85; }
+  .gap-row .bar s { position: absolute; top: 7px; height: 2px; background: #fff; opacity: 0.55; left: 0; }
+  .gap-club { width: 44px; font-weight: 800; }
+  .gap-num { width: 54px; text-align: right; font-variant-numeric: tabular-nums; }
+  .gap-flag { width: 120px; text-align: right; font-size: 12px; font-weight: 700; }
+  .sess { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; }
+  .sess summary { padding: 12px 14px; cursor: pointer; display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; list-style: none; }
+  .sess summary::-webkit-details-marker { display: none; }
+  .sess[open] { border-color: var(--accent); }
+  .sess .body { padding: 0 14px 12px; }
+  .sess ul { margin: 6px 0 10px; padding-left: 18px; color: #cfe9d8; }
+  footer { color: var(--dim); font-size: 12px; text-align: center; margin: 24px 0 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">Overhead <span>LM</span></div>
+    <div class="pill" id="conn"><span class="dot" id="connDot"></span><span id="connText">Not linked</span></div>
+    <div class="spacer"></div>
+    <div class="seg" id="segDist"><button data-v="yards">yd</button><button data-v="meters">m</button></div>
+    <div class="seg" id="segSpeed"><button data-v="mph">mph</button><button data-v="kph">km/h</button><button data-v="mps">m/s</button></div>
+    <button class="btn" id="btnNew" title="Make a new link code">New code</button>
+  </header>
+
+  <div id="banner"></div>
+
+  <section class="card pair" id="pairCard" hidden>
+    <div class="muted">Enter this code in the app</div>
+    <div class="code" id="pairCode">--------</div>
+    <ol>
+      <li>Open <b>Overhead LM</b> on your iPhone</li>
+      <li>Go to <b>Settings &rarr; Web dashboard</b></li>
+      <li>Type the code and tap <b>Link</b></li>
+    </ol>
+    <div class="muted" id="pairStatus">Waiting for the app&hellip;</div>
+  </section>
+
+  <main id="main" hidden>
+    <div class="grid">
+      <section class="card" id="shotCard">
+        <div class="shot-head">
+          <span class="club-badge" id="shotClub">-</span>
+          <span class="muted" id="shotMeta">No shots yet</span>
+        </div>
+        <div class="tiles" id="tiles"></div>
+        <div class="duo">
+          <div class="face" id="delivery"></div>
+          <div class="face" id="face"></div>
+        </div>
+        <div id="replay"></div>
+      </section>
+
+      <section class="card">
+        <h2>Dispersion</h2>
+        <div class="chips" id="clubChips"></div>
+        <div class="controls">
+          <div class="seg" id="segUse"><button data-v="carry">Carry</button><button data-v="total">Total</button></div>
+          <div class="seg" id="segMode"><button data-v="all">All shots</button><button data-v="range">Range mode</button><button data-v="today">Today</button></div>
+          <label>Target <input type="number" id="target" min="0" max="400" step="5" /> <span id="targetUnit">yd</span></label>
+        </div>
+        <div class="chart" id="chart"></div>
+        <div class="stats" id="stats"></div>
+      </section>
+    </div>
+
+    <section class="card table-wrap">
+      <h2>Club averages</h2>
+      <table id="avgTable"></table>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Gapping <span class="muted">(3+ shots per club, mishits trimmed)</span></h2>
+        <div id="gapping"></div>
+      </section>
+      <section class="card">
+        <h2>Trends</h2>
+        <div class="chips" id="trendClubs"></div>
+        <div class="chips" id="trendMetrics"></div>
+        <div class="chart" id="trendChart"></div>
+        <div class="muted" id="trendNote" style="margin-top:6px"></div>
+      </section>
+    </div>
+
+    <section class="card">
+      <h2>Sessions</h2>
+      <div id="sessions"></div>
+    </section>
+
+    <section class="card table-wrap">
+      <h2>Shots <span class="muted" id="shotCount"></span></h2>
+      <table id="shotTable"></table>
+    </section>
+  </main>
+
+  <footer>Spin isn't measured from above - carry and total use typical spin for the club. "est." values fell back to club averages; impact height is always estimated.</footer>
+</div>
+
+<script src="config.js"></script>
+<script src="faces.js"></script>
+<script>
+(() => {
+  'use strict';
+  const CFG = window.LM_CONFIG || {};
+  const SHAPES = window.FACE_SHAPES;
+  const CLUBS = window.CLUB_INFO;
+  const CLUB = Object.fromEntries(CLUBS.map((c) => [c.id, c]));
+  const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const DEMO = new URLSearchParams(location.search).has('demo');
+  const configured = !!(CFG.projectId && CFG.apiKey);
+  const BASE = `https://firestore.googleapis.com/v1/projects/${CFG.projectId}/databases/(default)/documents`;
+
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('lm:' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem('lm:' + k, JSON.stringify(v)); } catch {} },
+  };
+
+  const state = {
+    code: store.get('code', null),
+    linked: false,
+    device: '',
+    shots: [],
+    selectedId: null,
+    followLatest: true,
+    clubFilter: store.get('clubFilter', 'all'),
+    use: store.get('use', 'carry'),
+    modeFilter: store.get('modeFilter', 'all'),
+    units: store.get('units', null),
+    speedUnits: store.get('speedUnits', null),
+    target: store.get('target', 137.16),
+    trendClub: store.get('trendClub', null),
+    trendMetric: store.get('trendMetric', 'clubSpeed'),
+    error: null,
+  };
+
+  // ---------- units ----------
+  const M_PER_YD = 0.9144;
+  const units = () => state.units || (state.shots[0] && state.shots[0].units) || 'yards';
+  const speedUnits = () => state.speedUnits || (state.shots[0] && state.shots[0].speedUnits) || 'mph';
+  const dist = (m) => (units() === 'yards' ? m / M_PER_YD : m);
+  const dl = () => (units() === 'yards' ? 'yd' : 'm');
+  const spd = (v) => (speedUnits() === 'mph' ? v / 0.44704 : speedUnits() === 'kph' ? v * 3.6 : v);
+  const sl = () => (speedUnits() === 'mps' ? 'm/s' : speedUnits() === 'kph' ? 'km/h' : 'mph');
+  const r0 = (v) => Math.round(v);
+  const off = (m) => { const v = r0(dist(Math.abs(m))); return v === 0 ? '0' : `${v} ${m > 0 ? 'R' : 'L'}`; };
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // ---------- Firestore REST ----------
+  function decode(v) {
+    if (!v) return null;
+    if ('nullValue' in v) return null;
+    if ('booleanValue' in v) return v.booleanValue;
+    if ('integerValue' in v) return Number(v.integerValue);
+    if ('doubleValue' in v) return v.doubleValue;
+    if ('stringValue' in v) return v.stringValue;
+    if ('timestampValue' in v) return Date.parse(v.timestampValue);
+    if ('arrayValue' in v) return (v.arrayValue.values || []).map(decode);
+    if ('mapValue' in v) return decodeFields(v.mapValue.fields || {});
+    return null;
+  }
+  function decodeFields(f) { const o = {}; for (const k in f) o[k] = decode(f[k]); return o; }
+  const api = (path, q = '') => `${BASE}/${path}?key=${encodeURIComponent(CFG.apiKey)}${q ? '&' + q : ''}`;
+
+  async function createCode() {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const bytes = crypto.getRandomValues(new Uint8Array(8));
+      const code = Array.from(bytes, (b) => ALPHABET[b % ALPHABET.length]).join('');
+      const res = await fetch(api(`links/${code}`, 'currentDocument.exists=false'), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: { createdAt: { integerValue: String(Date.now()) } } }),
+      });
+      if (res.ok) return code;
+      if (res.status !== 400 && res.status !== 409) throw new Error(`Couldn't create a code (${res.status})`);
+    }
+    throw new Error("Couldn't create a code");
+  }
+
+  async function fetchLink(code) {
+    const res = await fetch(api(`links/${code}`));
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    const doc = await res.json();
+    return decodeFields(doc.fields || {});
+  }
+
+  async function fetchAllShots(code) {
+    const out = [];
+    let token = '';
+    for (let page = 0; page < 20; page++) {
+      const q = `pageSize=300&orderBy=time%20desc${token ? '&pageToken=' + encodeURIComponent(token) : ''}`;
+      const res = await fetch(api(`links/${code}/shots`, q));
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const j = await res.json();
+      for (const d of j.documents || []) out.push(decodeFields(d.fields || {}));
+      token = j.nextPageToken;
+      if (!token) break;
+    }
+    return out;
+  }
+
+  async function fetchNewShots(code, since) {
+    const res = await fetch(`${BASE}/links/${code}:runQuery?key=${encodeURIComponent(CFG.apiKey)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        structuredQuery: {
+          from: [{ collectionId: 'shots' }],
+          where: { fieldFilter: { field: { fieldPath: 'time' }, op: 'GREATER_THAN', value: { integerValue: String(since) } } },
+          orderBy: [{ field: { fieldPath: 'time' }, direction: 'ASCENDING' }],
+          limit: 200,
+        },
+      }),
+    });
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    const rows = await res.json();
+    return rows.filter((r) => r.document).map((r) => decodeFields(r.document.fields || {}));
+  }
+
+  // ---------- sync loop ----------
+  let timer = null;
+  async function startPairing(forceNew) {
+    clearTimeout(timer);
+    state.error = null;
+    state.linked = false;
+    state.shots = [];
+    if (DEMO) return startDemo();
+    if (!configured) { render(); return; }
+    try {
+      if (forceNew || !state.code) {
+        state.code = await createCode();
+        store.set('code', state.code);
+      }
+      render();
+      pollLink();
+    } catch (e) {
+      state.error = e.message;
+      render();
+    }
+  }
+
+  async function pollLink() {
+    try {
+      const link = await fetchLink(state.code);
+      if (!link) { state.code = null; return startPairing(true); }
+      if (link.appLinkedAt) {
+        state.linked = true;
+        state.device = link.device || 'iPhone';
+        state.shots = (await fetchAllShots(state.code)).sort((a, b) => b.time - a.time);
+        state.error = null;
+        render();
+        return pollShots();
+      }
+      state.error = null;
+    } catch (e) {
+      state.error = e.message;
+    }
+    render();
+    timer = setTimeout(pollLink, 3000);
+  }
+
+  async function pollShots() {
+    try {
+      const since = state.shots.length ? state.shots[0].time : 0;
+      const fresh = await fetchNewShots(state.code, since);
+      if (fresh.length) {
+        const ids = new Set(state.shots.map((s) => s.id));
+        const add = fresh.filter((s) => !ids.has(s.id));
+        state.shots = [...add, ...state.shots].sort((a, b) => b.time - a.time);
+        if (add.length) render(true);
+      }
+      if (state.error) { state.error = null; render(); }
+    } catch (e) {
+      state.error = e.message;
+      render();
+    }
+    timer = setTimeout(pollShots, 2500);
+  }
+
+  // ---------- demo ----------
+  function startDemo() {
+    state.code = 'DEMO2026';
+    state.linked = true;
+    state.device = 'Demo';
+    const typical = { DR: [62.6, 12.5, 220], '3W': [59.5, 11.5, 200], '5W': [56.8, 12.5, 188], '7i': [44.7, 16.5, 137], '9i': [39.3, 20.5, 117], PW: [36.7, 24, 104], SW: [30.4, 30, 80] };
+    const g = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+    const mk = (club, t) => {
+      const [bs0, la0, c0] = typical[club];
+      const ball = bs0 * (1 + 0.04 * g()), launch = la0 + 1.4 * g(), dir = 2.5 * g();
+      const carry = c0 * M_PER_YD * (ball / bs0) ** 1.25, total = carry * (club === 'DR' ? 1.09 : club.endsWith('W') ? 1.06 : 1.03);
+      const smash = { DR: 1.47, '3W': 1.45, '5W': 1.43 }[club] || 1.3;
+      return {
+        id: `demo-${t}-${Math.random()}`, time: t, club, mode: 'range', ballSpeed: ball, clubSpeed: ball / (smash * (1 + 0.02 * g())),
+        smash: smash * (1 + 0.02 * g()), launchDeg: launch, dirDeg: dir, spinRpm: 0, carry, total, offline: total * Math.sin((dir * Math.PI) / 180) + 4 * g(),
+        apex: carry * 0.12, descentDeg: 45, estimated: { clubSpeed: Math.random() < 0.2, launch: false }, quality: 0.9, points: 6, demo: true,
+        impact: { offsetMm: 8 * g(), heightMm: 4 * g(), heightEstimated: true }, handedness: 'right', units: 'yards', speedUnits: 'mph',
+        clubPathDeg: 2.5 * g() + 1, faceAngleDeg: dir * 0.9 + 0.8 * g(), shotType: 'full', carryOffline: total * Math.sin((dir * Math.PI) / 180),
+      };
+    };
+    const fp = (x) => { x.faceToPathDeg = x.faceAngleDeg - x.clubPathDeg; x.spinAxisDeg = x.faceToPathDeg * 1.5; return x; };
+    const clubs = Object.keys(typical);
+    // five sessions over three weeks, getting a little faster each time
+    for (let sess = 4; sess >= 0; sess--) {
+      let t = Date.now() - sess * 4.5 * 86400e3 - 3600e3;
+      for (let i = 0; i < 35; i++) {
+        t += 45e3;
+        const sh = fp(mk(clubs[i % clubs.length], t));
+        sh.ballSpeed *= 1 - sess * 0.012; sh.clubSpeed *= 1 - sess * 0.012; sh.carry *= 1 - sess * 0.015; sh.total *= 1 - sess * 0.015;
+        state.shots.unshift(sh);
+      }
+    }
+    // a few chips
+    for (let i = 0; i < 4; i++) {
+      const c = fp(mk('SW', Date.now() - 600e3 + i * 30e3));
+      Object.assign(c, { mode: 'chip', shotType: 'chip', ballSpeed: 12, launchDeg: 30, carry: 13, total: 21 + 2 * g(), offline: 0.6 * g(), apex: 2.2, descentDeg: 40 });
+      c.carryOffline = c.offline;
+      state.shots.unshift(c);
+    }
+    state.shots.sort((a, b) => b.time - a.time);
+    render();
+    setInterval(() => { state.shots.unshift(fp(mk(clubs[Math.floor(Math.random() * clubs.length)], Date.now()))); render(true); }, 9000);
+  }
+
+  // ---------- drawing ----------
+  function faceSvg(clubId, impact, handed) {
+    const ft = (CLUB[clubId] || {}).face || 'iron';
+    const s = SHAPES[ft];
+    const [x0, y0, x1, y1] = s.box;
+    const m = handed === 'left' ? -1 : 1;
+    const vbX = m === 1 ? x0 : -x1;
+    const has = impact && impact.offsetMm != null;
+    const dx = has ? impact.offsetMm : 0, dy = impact && impact.heightMm != null ? impact.heightMm : 0;
+    const grooves = s.grooves.map(([y, a, b]) => `<line x1="${a}" x2="${b}" y1="${y}" y2="${y}" stroke="#1c2128" stroke-width="0.9" stroke-linecap="round"/>`).join('');
+    const svg = `<svg viewBox="${vbX} ${-y1} ${x1 - x0} ${y1 - y0}" role="img" aria-label="Club face impact">
+      <defs><linearGradient id="fg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b6470"/><stop offset="1" stop-color="#2d333b"/></linearGradient></defs>
+      <g transform="scale(${m},-1)">
+        <path d="${s.hosel}" fill="#3a414a" stroke="#8b949e" stroke-width="0.8"/>
+        <path d="${s.outline}" fill="url(#fg)" stroke="#aab2bd" stroke-width="1.1"/>
+        ${grooves}
+        ${s.sweet ? `<circle r="${s.sweet}" fill="none" stroke="#8b949e" stroke-width="0.5" stroke-dasharray="1.5 1.5"/>` : ''}
+        <line x1="-6" x2="6" y1="0" y2="0" stroke="#c9d1d9" stroke-width="0.5"/><line x1="0" x2="0" y1="-6" y2="6" stroke="#c9d1d9" stroke-width="0.5"/>
+        ${has ? `<circle cx="${dx}" cy="${dy}" r="9" fill="rgba(255,138,30,0.25)"/><circle cx="${dx}" cy="${dy}" r="4.6" fill="#ff8a1e" stroke="#fff" stroke-width="0.9"/>` : ''}
+      </g></svg>`;
+    const mm = (v, p, n) => { const r = Math.round(v); return r === 0 ? 'centre' : `${Math.abs(r)} mm ${r > 0 ? p : n}`; };
+    return `<div class="face-title">Face impact · ${esc(s.label)}</div>${svg}
+      <div class="face-labels"><span>${m === 1 ? 'HEEL' : 'TOE'}</span><span>${m === 1 ? 'TOE' : 'HEEL'}</span></div>
+      <div class="readouts">
+        <div><div class="muted">IMPACT OFFSET</div><div class="v">${has ? mm(dx, 'toe', 'heel') : '-'}</div></div>
+        <div><div class="muted">IMPACT HEIGHT ${impact && impact.heightMm != null ? '<span class="est">est.</span>' : ''}</div><div class="v">${impact && impact.heightMm != null ? mm(dy, 'high', 'low') : '-'}</div></div>
+      </div>
+      ${impact && !has ? '<div class="muted" style="margin-top:6px">Club not clear enough before impact to place the strike.</div>' : ''}
+      ${!impact ? '<div class="muted" style="margin-top:6px">No impact data for this shot.</div>' : ''}`;
+  }
+
+  function dispersion(shots, use) {
+    const ys = shots.map((s) => (use === 'carry' ? s.carry : s.total));
+    const xs = shots.map((s) => (use === 'carry' ? s.offline * (s.carry / Math.max(1, s.total)) : s.offline));
+    const n = shots.length, mean = (a) => (a.length ? a.reduce((p, x) => p + x, 0) / a.length : 0);
+    const mx = mean(xs), my = mean(ys);
+    let sxx = 0, syy = 0, sxy = 0;
+    for (let i = 0; i < n; i++) { sxx += (xs[i] - mx) ** 2; syy += (ys[i] - my) ** 2; sxy += (xs[i] - mx) * (ys[i] - my); }
+    const d = Math.max(1, n - 1); sxx /= d; syy /= d; sxy /= d;
+    let ellipse = null;
+    if (n >= 3) {
+      const tr = sxx + syy, disc = Math.sqrt(Math.max(0, tr * tr / 4 - (sxx * syy - sxy * sxy)));
+      const l1 = tr / 2 + disc, l2 = Math.max(0, tr / 2 - disc);
+      const angle = Math.abs(sxy) < 1e-9 ? (sxx >= syy ? 0 : Math.PI / 2) : Math.atan2(l1 - sxx, sxy);
+      ellipse = { cx: mx, cy: my, a: 2 * Math.sqrt(l1), b: 2 * Math.sqrt(l2), angle };
+    }
+    return { n, xs, ys, mx, my, sdX: Math.sqrt(sxx), sdY: Math.sqrt(syy), ellipse,
+      width: n ? Math.max(...xs) - Math.min(...xs) : 0, depth: n ? Math.max(...ys) - Math.min(...ys) : 0,
+      ball: mean(shots.map((s) => s.ballSpeed)), clubSpd: mean(shots.map((s) => s.clubSpeed)), smash: mean(shots.map((s) => s.smash)) };
+  }
+
+  function chartSvg(shots, use, target, selectedId) {
+    const W = 600, H = 460, padT = 12, padB = 24, ch = H - padT - padB;
+    const val = (s) => (use === 'carry' ? s.carry : s.total);
+    const lat = (s) => (use === 'carry' ? s.offline * (s.carry / Math.max(1, s.total)) : s.offline);
+    const maxD = Math.max(target || 0, 50, ...shots.map(val)) * 1.12;
+    const maxL = Math.max(18, ...shots.map((s) => Math.abs(lat(s)) * 1.25));
+    const sy = ch / maxD, sx = Math.min((W / 2 - 8) / maxL, sy * 2.5);
+    const X = (m) => W / 2 + m * sx, Y = (m) => padT + ch - m * sy;
+    const stepYd = maxD / M_PER_YD > 220 ? 50 : 25, stepM = units() === 'yards' ? stepYd * M_PER_YD : stepYd;
+    let out = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Shot dispersion">`;
+    out += `<path d="M ${X(-2)} ${Y(0)} L ${X(-maxD * 0.12)} ${Y(maxD)} L ${X(maxD * 0.12)} ${Y(maxD)} L ${X(2)} ${Y(0)} Z" fill="#123322"/>`;
+    for (let m = stepM; m < maxD; m += stepM) out += `<line x1="0" x2="${W}" y1="${Y(m)}" y2="${Y(m)}" stroke="#1e3a2a"/><text x="8" y="${Y(m) - 4}" fill="#8fa89a" font-size="12">${r0(dist(m))}</text>`;
+    out += `<line x1="${X(0)}" x2="${X(0)}" y1="${Y(0)}" y2="${Y(maxD)}" stroke="#2f5a42" stroke-dasharray="4 4"/>`;
+    if (target) out += `<circle cx="${X(0)}" cy="${Y(target)}" r="${Math.max(7, 4.5 * sx)}" fill="none" stroke="#60a5fa" stroke-width="1.5"/><line x1="${X(0)}" x2="${X(0)}" y1="${Y(target)}" y2="${Y(target) - 20}" stroke="#60a5fa" stroke-width="2"/><path d="M ${X(0)} ${Y(target) - 20} l 11 4.5 l -11 4.5 Z" fill="#60a5fa"/>`;
+    const d = dispersion(shots, use);
+    if (d.ellipse) {
+      const e = d.ellipse, ca = Math.cos(e.angle), sa = Math.sin(e.angle);
+      let p = '';
+      for (let i = 0; i <= 48; i++) { const t = (i / 48) * Math.PI * 2, u = e.a * Math.cos(t), v = e.b * Math.sin(t); p += `${i ? 'L' : 'M'} ${X(e.cx + u * ca - v * sa).toFixed(1)} ${Y(e.cy + u * sa + v * ca).toFixed(1)} `; }
+      out += `<path d="${p}Z" fill="rgba(74,222,128,0.12)" stroke="#4ade80" stroke-width="1.5"/>`;
+    }
+    for (const s of [...shots].reverse()) {
+      const sel = s.id === selectedId;
+      out += `<circle data-id="${esc(s.id)}" cx="${X(lat(s)).toFixed(1)}" cy="${Y(val(s)).toFixed(1)}" r="${sel ? 8 : 5.5}" fill="${(CLUB[s.club] || {}).color || '#ccc'}" stroke="${sel ? '#fff' : '#03140a'}" stroke-width="${sel ? 2.5 : 1}" style="cursor:pointer"><title>${esc(s.club)} · ${r0(dist(val(s)))} ${dl()} · ${off(lat(s))}</title></circle>`;
+    }
+    out += `<rect x="${X(0) - 4}" y="${Y(0) - 4}" width="8" height="8" fill="#fff"/>`;
+    out += `<text x="${W - 8}" y="${H - 8}" fill="#8fa89a" font-size="12" text-anchor="end">${use} (${dl()}) · ellipse = 2σ</text></svg>`;
+    if (!shots.length) out += '<div class="empty">Shots will land here</div>';
+    return out;
+  }
+
+  const tile = (label, value, unit, est, big) =>
+    `<div class="tile${big ? ' big' : ''}"><div class="l">${label}${est ? '<span class="est">est.</span>' : ''}</div><div class="v">${value}${unit ? `<span class="u">${unit}</span>` : ''}</div></div>`;
+
+  function filtered() {
+    const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
+    return state.shots.filter((s) =>
+      (state.clubFilter === 'all' || s.club === state.clubFilter) &&
+      (state.modeFilter === 'all' || (state.modeFilter === 'range' ? s.mode === 'range' : s.time >= dayStart.getTime())));
+  }
+
+
+  // ---------- club path & face ----------
+  const fmtDeg = (d) => `${Math.abs(d).toFixed(1)}°`;
+  function pathText(d, handed) {
+    if (d == null) return '-';
+    if (Math.abs(d) < 0.05) return '0.0° square';
+    const io = handed === 'left' ? d < 0 : d > 0;
+    return `${fmtDeg(d)} ${io ? 'in-to-out' : 'out-to-in'}`;
+  }
+  function faceText(d, handed) {
+    if (d == null) return '-';
+    if (Math.abs(d) < 0.05) return '0.0° square';
+    const open = handed === 'left' ? d < 0 : d > 0;
+    return `${fmtDeg(d)} ${open ? 'open' : 'closed'}`;
+  }
+  function f2pText(d, handed) {
+    if (d == null) return '-';
+    const shape = (handed === 'left') !== (d > 0) ? 'fade' : 'draw';
+    return `${d >= 0 ? '+' : '−'}${fmtDeg(d)} ${Math.abs(d) < 0.05 ? '' : shape}`;
+  }
+  const lr = (d) => (d == null ? '-' : `${fmtDeg(d)} ${d >= 0 ? 'R' : 'L'}`);
+
+  function deliverySvg(s, handed) {
+    const W = 300, H = 220, cx = W / 2, cy = 130, EX = 2.5;
+    const path = s ? s.clubPathDeg : null, face = s ? s.faceAngleDeg : null;
+    const rot = (d) => (d * EX * Math.PI) / 180;
+    let g = '';
+    if (path != null) {
+      const a = rot(path);
+      g += `<line x1="${cx - Math.sin(a) * 95}" y1="${cy + Math.cos(a) * 95}" x2="${cx + Math.sin(a) * 70}" y2="${cy - Math.cos(a) * 70}" stroke="#60a5fa" stroke-width="3" marker-end="url(#arr)"/>`;
+    }
+    if (face != null) {
+      const a = rot(face), fx = Math.cos(a), fy = Math.sin(a), fcx = cx - Math.sin(a) * 14, fcy = cy + Math.cos(a) * 14;
+      g += `<line x1="${fcx - fx * 46}" y1="${fcy - fy * 46}" x2="${fcx + fx * 46}" y2="${fcy + fy * 46}" stroke="#ff8a1e" stroke-width="5" stroke-linecap="round"/>`;
+    }
+    const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Club path and face">
+      <defs><marker id="arr" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#60a5fa"/></marker></defs>
+      <line x1="${cx}" x2="${cx}" y1="10" y2="${H - 6}" stroke="#3d5a4a" stroke-width="1.5" stroke-dasharray="5 5"/>
+      <text x="${cx + 6}" y="20" fill="#8fa89a" font-size="10">TARGET</text>${g}
+      <circle cx="${cx}" cy="${cy - 6}" r="7" fill="#fff"/></svg>`;
+    return `<div class="face-title">Club path & face</div>${svg}
+      <div class="drows">
+        <div class="drow"><i style="background:#60a5fa"></i><span>Club path</span><b>${pathText(path, handed)}</b></div>
+        <div class="drow"><i style="background:#ff8a1e"></i><span>Face to target</span><b>${faceText(face, handed)}</b></div>
+        <div class="drow"><i style="background:#eef6f0"></i><span>Face to path</span><b>${f2pText(s ? s.faceToPathDeg : null, handed)}</b></div>
+      </div>
+      <div class="muted" style="margin-top:6px;font-size:11px">${path != null || face != null ? 'Angles drawn 2.5× so small numbers are visible.' : 'No path / face reading for this shot.'}</div>`;
+  }
+
+  // ---------- replays (chunked in Firestore: links/{code}/media/{shot}_{kind}_{n}) ----------
+  const media = new Map(); // shotId -> 'loading' | 'none' | { video, image }
+  async function loadMedia(shotId) {
+    if (media.has(shotId) || DEMO || !configured) return;
+    media.set(shotId, 'loading');
+    try {
+      const res = await fetch(`${BASE}/links/${state.code}:runQuery?key=${encodeURIComponent(CFG.apiKey)}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'media' }],
+          where: { fieldFilter: { field: { fieldPath: 'shotId' }, op: 'EQUAL', value: { stringValue: shotId } } } } }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const rows = (await res.json()).filter((r) => r.document).map((r) => r.document.fields);
+      const out = {};
+      for (const kind of ['video', 'image']) {
+        const parts = rows.filter((f) => f.kind.stringValue === kind).sort((a, b) => Number(a.part.integerValue) - Number(b.part.integerValue));
+        if (!parts.length || parts.length !== Number(parts[0].parts.integerValue)) continue;
+        const b64 = parts.map((f) => f.data.bytesValue).join('');
+        const bin = atob(b64), bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        out[kind] = URL.createObjectURL(new Blob([bytes], { type: kind === 'video' ? 'video/mp4' : 'image/jpeg' }));
+      }
+      media.set(shotId, out.video || out.image ? out : 'none');
+    } catch {
+      media.delete(shotId); // retry next render
+      return;
+    }
+    if (state.selectedId === shotId) render();
+  }
+
+  let replayStill = false;
+  function overlaySvg(s) {
+    const pts = (flat) => { const o = []; for (let i = 0; i + 1 < (flat || []).length; i += 2) o.push([1 - flat[i + 1], flat[i]]); return o; };
+    const ball = pts(s.trackFlat), club = pts(s.clubTrailFlat);
+    const poly = (p, attrs) => (p.length >= 2 ? `<polyline points="${p.map(([x, y]) => `${(x * 90).toFixed(2)},${(y * 160).toFixed(2)}`).join(' ')}" fill="none" ${attrs}/>` : '');
+    return `<svg viewBox="0 0 90 160" preserveAspectRatio="none">${poly(club, 'stroke="#60a5fa" stroke-width="0.9" stroke-dasharray="2 1.2"')}${poly(ball, 'stroke="#fbbf24" stroke-width="0.7"')}
+      ${ball.map(([x, y]) => `<circle cx="${(x * 90).toFixed(2)}" cy="${(y * 160).toFixed(2)}" r="0.9" fill="#fbbf24"/>`).join('')}</svg>`;
+  }
+  function replayHtml(s) {
+    if (!s || !s.replay) return '';
+    const m = media.get(s.id);
+    if (m === undefined) loadMedia(s.id);
+    let body;
+    if (DEMO) body = '<div class="empty">Replays appear here for real shots.</div>';
+    else if (m === undefined || m === 'loading') body = '<div class="empty">Loading replay…</div>';
+    else if (m === 'none') body = '<div class="empty">Replay not uploaded (yet). It follows the numbers when the phone has signal.</div>';
+    else {
+      const showStill = (replayStill && m.image) || !m.video;
+      body = `<div class="replay-stage">${showStill ? `<img src="${m.image}" alt="Impact frame">` : `<video src="${m.video}" autoplay loop muted playsinline></video>`}${overlaySvg(s)}</div>`;
+    }
+    const toggle = m && m !== 'loading' && m !== 'none' && m.video && m.image
+      ? `<button class="btn" id="btnStill" style="margin-left:auto">${replayStill ? 'Video' : 'Still'}</button>` : '';
+    return `<div class="replay"><div class="replay-head"><b>Replay</b><span class="muted">${replayStill ? 'impact frame' : '8× slow motion'}</span>${toggle}</div>${body}</div>`;
+  }
+
+  // ---------- sessions, gapping, trends (same rules as the app) ----------
+  const avg = (a) => (a.length ? a.reduce((p, x) => p + x, 0) / a.length : NaN);
+  const sdv = (a) => { if (a.length < 2) return NaN; const m = avg(a); return Math.sqrt(a.reduce((p, x) => p + (x - m) ** 2, 0) / (a.length - 1)); };
+  const trim = (a) => { if (a.length < 10) return avg(a); const q = [...a].sort((x, y) => x - y), k = Math.floor(q.length * 0.1); return avg(q.slice(k, q.length - k)); };
+  const fin = (a) => a.filter((x) => typeof x === 'number' && Number.isFinite(x));
+  function groupSessions(shots) {
+    const sorted = shots.filter((x) => !x.demo || DEMO).sort((a, b) => a.time - b.time), out = [];
+    for (const x of sorted) { const c = out[out.length - 1]; if (c && x.time - c.end <= 45 * 60e3) { c.shots.push(x); c.end = x.time; } else out.push({ start: x.time, end: x.time, shots: [x] }); }
+    return out.reverse();
+  }
+  function clubSummaries(shots) {
+    return CLUBS.map((c) => {
+      const cs = shots.filter((x) => x.club === c.id && x.shotType !== 'chip');
+      if (!cs.length) return null;
+      return { club: c.id, name: c.name, color: c.color, n: cs.length, carry: trim(cs.map((x) => x.carry)), total: trim(cs.map((x) => x.total)),
+        carrySd: sdv(cs.map((x) => x.carry)), offline: avg(cs.map((x) => x.offline)), spread: 2 * sdv(cs.map((x) => x.offline)),
+        ballSpeed: avg(cs.map((x) => x.ballSpeed)), clubSpeed: avg(cs.map((x) => x.clubSpeed)), smash: avg(cs.map((x) => x.smash)),
+        centeredness: avg(fin(cs.map((x) => (x.impact && x.impact.offsetMm != null ? Math.abs(x.impact.offsetMm) : null)))),
+        best: Math.max(...cs.map((x) => x.carry)) };
+    }).filter(Boolean);
+  }
+  function gapRows(shots) {
+    const rows = clubSummaries(shots).filter((r) => r.n >= 3);
+    return rows.map((r, i) => {
+      const nx = rows[i + 1], gap = nx ? r.carry - nx.carry : null;
+      let flag = 'ok';
+      if (gap != null) flag = gap <= 0 ? 'overlap' : gap < 6.4 ? 'small' : gap > 18.3 ? 'big' : 'ok';
+      return { ...r, gap, flag };
+    });
+  }
+  const FLAG = { ok: ['Good gap', 'var(--accent)'], big: ['Gap too big', 'var(--warn)'], small: ['Gap too small', 'var(--warn)'], overlap: ['Overlap', 'var(--bad)'] };
+  function gappingHtml() {
+    const rows = gapRows(state.shots);
+    if (!rows.length) return '<div class="empty">Hit 3+ shots with two or more clubs to see gapping.</div>';
+    const max = Math.max(...rows.map((r) => r.total));
+    return rows.map((r) => `<div class="gap-row"><span class="gap-club" style="color:${r.color}">${r.club}</span>
+      <div class="bar"><b style="width:${(r.carry / max) * 100}%;background:${r.color}"></b><s style="width:${(r.total / max) * 100}%"></s></div>
+      <span class="gap-num">${r0(dist(r.carry))} ${dl()}</span>
+      <span class="gap-flag" style="color:${r.gap == null ? 'var(--dim)' : FLAG[r.flag][1]}">${r.gap == null ? '' : `${r.gap > 0 ? '' : '−'}${Math.abs(r0(dist(r.gap)))} ${dl()} · ${FLAG[r.flag][0]}`}</span></div>`).join('')
+      + '<div class="muted" style="margin-top:8px">Bar = average carry, white line = total. Gap = distance to the next club down.</div>';
+  }
+
+  const METRICS = { clubSpeed: 'Club speed', ballSpeed: 'Ball speed', carry: 'Carry', smash: 'Smash', spread: 'L/R spread', centeredness: 'Strike from centre' };
+  function fmtMetric(m, v) {
+    if (m === 'clubSpeed' || m === 'ballSpeed') return `${r0(spd(v))} ${sl()}`;
+    if (m === 'smash') return v.toFixed(2);
+    if (m === 'centeredness') return `${v.toFixed(0)} mm`;
+    return `${r0(dist(v))} ${dl()}`;
+  }
+  function trendsHtml(sessions) {
+    const used = CLUBS.filter((c) => state.shots.some((x) => x.club === c.id));
+    if (!used.find((c) => c.id === state.trendClub)) state.trendClub = used[0] ? used[0].id : '7i';
+    document.getElementById('trendClubs').innerHTML = used.map((c) => `<button class="chip${state.trendClub === c.id ? ' sel' : ''}" data-tclub="${c.id}">${c.id}</button>`).join('');
+    document.getElementById('trendMetrics').innerHTML = Object.entries(METRICS).map(([k, v]) => `<button class="chip${state.trendMetric === k ? ' sel' : ''}" data-tmetric="${k}">${v}</button>`).join('');
+    const pts = [];
+    for (const se of [...sessions].reverse()) {
+      const c = clubSummaries(se.shots).find((x) => x.club === state.trendClub);
+      if (c && c.n >= 2 && Number.isFinite(c[state.trendMetric])) pts.push({ t: se.start, v: c[state.trendMetric] });
+    }
+    if (pts.length < 1) { document.getElementById('trendNote').textContent = ''; return '<div class="empty">Needs sessions with this club</div>'; }
+    const W = 600, H = 240, pl = 70, pr = 14, pt = 14, pb = 26;
+    let lo = Math.min(...pts.map((p) => p.v)), hi = Math.max(...pts.map((p) => p.v));
+    if (!(hi > lo)) { lo -= 1; hi += 1; }
+    const sp = hi - lo; lo -= sp * 0.1; hi += sp * 0.1;
+    const X = (i) => pl + (pts.length < 2 ? (W - pl - pr) / 2 : (i / (pts.length - 1)) * (W - pl - pr));
+    const Y = (v) => pt + (1 - (v - lo) / (hi - lo)) * (H - pt - pb);
+    const color = (CLUB[state.trendClub] || {}).color || '#4ade80';
+    const date = (t) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    let out = `<svg viewBox="0 0 ${W} ${H}">`;
+    for (const g of [lo + sp * 0.05, (lo + hi) / 2, hi - sp * 0.05]) out += `<line x1="${pl}" x2="${W - pr}" y1="${Y(g)}" y2="${Y(g)}" stroke="#1e3a2a"/><text x="${pl - 6}" y="${Y(g) + 4}" fill="#8fa89a" font-size="11" text-anchor="end">${fmtMetric(state.trendMetric, g)}</text>`;
+    out += `<path d="${pts.map((p, i) => `${i ? 'L' : 'M'} ${X(i)} ${Y(p.v)}`).join(' ')}" stroke="${color}" stroke-width="2.5" fill="none"/>`;
+    out += pts.map((p, i) => `<circle cx="${X(i)}" cy="${Y(p.v)}" r="${i === pts.length - 1 ? 5 : 3.5}" fill="${color}" stroke="#03140a"><title>${date(p.t)}: ${fmtMetric(state.trendMetric, p.v)}</title></circle>`).join('');
+    out += `<text x="${pl}" y="${H - 8}" fill="#8fa89a" font-size="11">${date(pts[0].t)}</text><text x="${W - pr}" y="${H - 8}" fill="#8fa89a" font-size="11" text-anchor="end">${date(pts[pts.length - 1].t)}</text></svg>`;
+    const ch = pts.length >= 2 ? pts[pts.length - 1].v - pts[0].v : null;
+    const good = ch == null ? null : state.trendMetric === 'spread' || state.trendMetric === 'centeredness' ? ch < 0 : ch > 0;
+    document.getElementById('trendNote').innerHTML = ch == null ? '' : `<span style="color:${good ? 'var(--accent)' : 'var(--warn)'}">${ch >= 0 ? '+' : '−'}${fmtMetric(state.trendMetric, Math.abs(ch))} over ${pts.length} sessions</span>`;
+    return out;
+  }
+  function sessionsHtml(sessions) {
+    if (!sessions.length) return '<div class="empty">No sessions yet</div>';
+    return sessions.slice(0, 30).map((se, i) => {
+      const cs = clubSummaries(se.shots), prev = sessions[i + 1] ? clubSummaries(sessions[i + 1].shots) : [];
+      const notes = [];
+      for (const c of cs) {
+        const p = prev.find((x) => x.club === c.club);
+        if (!p || c.n < 3 || p.n < 3) continue;
+        const d = c.clubSpeed - p.clubSpeed;
+        if (Math.abs(d) > 0.9) notes.push(`${c.club}: club speed ${d > 0 ? 'up' : 'down'} ${spd(Math.abs(d)).toFixed(1)} ${sl()} on the session before`);
+        if (Number.isFinite(c.spread) && Number.isFinite(p.spread) && Math.abs(c.spread - p.spread) > 3) notes.push(`${c.club}: dispersion ${c.spread < p.spread ? 'tighter' : 'wider'} by ${r0(dist(Math.abs(c.spread - p.spread)))} ${dl()}`);
+      }
+      const strikes = fin(se.shots.map((x) => (x.impact && x.impact.offsetMm != null ? Math.abs(x.impact.offsetMm) : null)));
+      if (strikes.length >= 5) notes.push(`${Math.round((strikes.filter((x) => x <= 8).length / strikes.length) * 100)}% of strikes within 8 mm of the centre`);
+      const rows = cs.map((c) => `<tr><td><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c.color};margin-right:6px"></i>${c.club} ×${c.n}</td><td>${r0(dist(c.carry))}</td><td>${r0(dist(c.total))}</td><td>${off(c.offline)}</td><td>${Number.isFinite(c.spread) ? r0(dist(c.spread)) : '-'}</td><td>${r0(spd(c.ballSpeed))}</td><td>${r0(spd(c.clubSpeed))}</td><td>${c.smash.toFixed(2)}</td><td>${r0(dist(c.best))}</td></tr>`).join('');
+      const d0 = new Date(se.start);
+      return `<details class="sess"${i === 0 ? ' open' : ''}><summary><b>${d0.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</b>
+        <span class="muted">${d0.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · ${se.shots.length} shots · ${Math.max(1, Math.round((se.end - se.start) / 60e3))} min · ${[...new Set(se.shots.map((x) => x.club))].join(' ')}</span></summary>
+        <div class="body">${notes.length ? `<ul>${notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
+        <div class="table-wrap" style="margin-top:0"><table><thead><tr><th>Club</th><th>Carry</th><th>Total</th><th>Avg L/R</th><th>Spread</th><th>Ball</th><th>Club</th><th>Smash</th><th>Best</th></tr></thead><tbody>${rows}</tbody></table></div></div></details>`;
+    }).join('');
+  }
+
+  // ---------- render ----------
+  function setSeg(id, value) { document.querySelectorAll(`#${id} button`).forEach((b) => b.classList.toggle('sel', b.dataset.v === value)); }
+
+  function render(newShot) {
+    const $ = (id) => document.getElementById(id);
+    setSeg('segDist', units()); setSeg('segSpeed', speedUnits()); setSeg('segUse', state.use); setSeg('segMode', state.modeFilter);
+    $('targetUnit').textContent = dl();
+    if (document.activeElement !== $('target')) $('target').value = r0(dist(state.target));
+
+    let banner = '';
+    if (!configured && !DEMO) banner = 'The dashboard isn\'t connected to a Firebase project yet. Fill in <b>web/config.js</b> (see README), or open this page with <b>?demo</b> to preview it.';
+    else if (state.error) banner = `Connection problem: ${esc(state.error)} - retrying.`;
+    $('banner').innerHTML = banner ? `<div class="banner">${banner}</div>` : '';
+
+    $('connDot').className = 'dot ' + (state.linked ? 'on' : state.code ? 'wait' : '');
+    $('connText').textContent = state.linked ? `Linked · ${state.device}${DEMO ? ' (demo)' : ''}` : state.code ? 'Waiting for app' : 'Not linked';
+    $('btnNew').hidden = DEMO;
+
+    $('pairCard').hidden = state.linked || (!configured && !DEMO);
+    $('main').hidden = !state.linked;
+    $('pairCode').textContent = state.code ? `${state.code.slice(0, 4)}-${state.code.slice(4)}` : '--------';
+    if (!state.linked) return;
+
+    if (state.followLatest || !state.shots.find((s) => s.id === state.selectedId)) state.selectedId = state.shots[0] ? state.shots[0].id : null;
+    const s = state.shots.find((x) => x.id === state.selectedId);
+    const handed = (s && s.handedness) || 'right';
+
+    $('shotClub').textContent = s ? (CLUB[s.club] || { name: s.club }).name : 'Waiting for a shot';
+    $('shotMeta').textContent = s ? `${new Date(s.time).toLocaleString()} · ${s.mode === 'range' ? 'Driving range' : s.mode === 'chip' ? 'Chipping' : s.mode === 'game' ? 'Target game' : 'Launch monitor'}${s.demo ? ' · demo' : ''}${state.followLatest ? ' · live' : ''}` : 'Hit a ball - it shows up here within a few seconds.';
+    const chip = s && s.shotType === 'chip';
+    const d1 = (m) => dist(m).toFixed(1);
+    $('tiles').innerHTML = !s ? '' : chip ? [
+      tile('Carry', d1(s.carry), dl(), false, true),
+      tile('Roll', d1(s.total - s.carry), dl(), false, true),
+      tile('Total', d1(s.total), dl(), false, true),
+      tile('Landing L/R', off(s.carryOffline != null ? s.carryOffline : s.offline), dl()),
+      tile('Launch', `${s.launchDeg.toFixed(1)}°`, '', s.estimated && s.estimated.launch),
+      tile('Ball speed', r0(spd(s.ballSpeed)), sl()),
+      tile('Land angle', `${s.descentDeg.toFixed(0)}°`),
+      tile('Club path', lr(s.clubPathDeg)),
+      tile('Face angle', lr(s.faceAngleDeg)),
+    ].join('') : [
+      tile('Carry', r0(dist(s.carry)), dl(), false, true),
+      tile('Total', r0(dist(s.total)), dl(), false, true),
+      tile('Left / Right', off(s.offline), dl(), false, true),
+      tile('Ball speed', r0(spd(s.ballSpeed)), sl()),
+      tile('Club speed', r0(spd(s.clubSpeed)), sl(), s.estimated && s.estimated.clubSpeed),
+      tile('Smash', s.smash.toFixed(2), '', s.estimated && s.estimated.clubSpeed),
+      tile('Club path', lr(s.clubPathDeg)),
+      tile('Face angle', lr(s.faceAngleDeg)),
+      tile('Face to path', s.faceToPathDeg == null ? '-' : `${s.faceToPathDeg >= 0 ? '+' : '−'}${Math.abs(s.faceToPathDeg).toFixed(1)}°`),
+      tile('Launch', `${s.launchDeg.toFixed(1)}°`, '', s.estimated && s.estimated.launch),
+      tile('Start line', lr(s.dirDeg)),
+      tile('Apex', r0(dist(s.apex)), dl()),
+    ].join('');
+    $('delivery').innerHTML = deliverySvg(s, handed);
+    $('face').innerHTML = s ? faceSvg(s.club, s.impact, handed) : faceSvg(state.clubFilter === 'all' ? '7i' : state.clubFilter, null, handed);
+    $('replay').innerHTML = replayHtml(s);
+    const sessions = groupSessions(state.shots);
+    $('gapping').innerHTML = gappingHtml();
+    $('trendChart').innerHTML = trendsHtml(sessions);
+    $('sessions').innerHTML = sessionsHtml(sessions);
+    if (newShot) { $('shotCard').classList.remove('flash'); void $('shotCard').offsetWidth; $('shotCard').classList.add('flash'); }
+
+    // club chips
+    const used = CLUBS.filter((c) => state.shots.some((x) => x.club === c.id));
+    $('clubChips').innerHTML = [`<button class="chip${state.clubFilter === 'all' ? ' sel' : ''}" data-club="all">All</button>`,
+      ...used.map((c) => `<button class="chip${state.clubFilter === c.id ? ' sel' : ''}" data-club="${c.id}"><i style="background:${c.color}"></i>${c.id}</button>`)].join('');
+
+    const list = filtered();
+    $('chart').innerHTML = chartSvg(list.slice(0, 500), state.use, state.target, state.selectedId);
+    const d = dispersion(list, state.use);
+    $('stats').innerHTML = [
+      tile('Shots', d.n),
+      tile(`Avg ${state.use}`, d.n ? r0(dist(d.my)) : '-', dl()),
+      tile('Avg L/R', d.n ? off(d.mx) : '-'),
+      tile('Width', d.n ? r0(dist(d.width)) : '-', dl()),
+      tile('Depth', d.n ? r0(dist(d.depth)) : '-', dl()),
+      tile('Avg ball spd', d.n ? r0(spd(d.ball)) : '-', sl()),
+    ].join('');
+
+    // averages per club
+    const rows = used.map((c) => {
+      const cs = state.shots.filter((x) => x.club === c.id), dd = dispersion(cs, 'carry');
+      const imp = cs.filter((x) => x.impact && x.impact.offsetMm != null);
+      const avgImp = imp.length ? imp.reduce((p, x) => p + x.impact.offsetMm, 0) / imp.length : null;
+      return `<tr><td><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c.color};margin-right:6px"></i>${c.name}</td><td>${cs.length}</td>
+        <td>${r0(dist(dd.my))}</td><td>${r0(dist(cs.reduce((p, x) => p + x.total, 0) / cs.length))}</td><td>${off(dd.mx)}</td><td>±${r0(dist(dd.sdX))}</td>
+        <td>${r0(spd(dd.ball))}</td><td>${r0(spd(dd.clubSpd))}</td><td>${dd.smash.toFixed(2)}</td><td>${avgImp == null ? '-' : Math.round(avgImp) === 0 ? 'centre' : `${Math.abs(Math.round(avgImp))} mm ${avgImp > 0 ? 'toe' : 'heel'}`}</td></tr>`;
+    });
+    $('avgTable').innerHTML = `<thead><tr><th>Club</th><th>Shots</th><th>Carry</th><th>Total</th><th>Avg L/R</th><th>L/R spread</th><th>Ball</th><th>Club</th><th>Smash</th><th>Impact</th></tr></thead><tbody>${rows.join('') || '<tr><td colspan="10" class="empty">No shots yet</td></tr>'}</tbody>`;
+
+    // shot table
+    $('shotCount').textContent = `(${list.length})`;
+    const body = list.slice(0, 400).map((x) => {
+      const im = x.impact && x.impact.offsetMm != null ? (Math.round(x.impact.offsetMm) === 0 ? 'centre' : `${Math.abs(Math.round(x.impact.offsetMm))} ${x.impact.offsetMm > 0 ? 'toe' : 'heel'}`) : '-';
+      const ce = x.estimated && x.estimated.clubSpeed ? ' class="e"' : '';
+      return `<tr data-id="${esc(x.id)}"${x.id === state.selectedId ? ' class="sel"' : ''}><td>${new Date(x.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td><td>${esc(x.club)}${x.demo ? '*' : ''}</td>
+        <td>${r0(dist(x.carry))}</td><td>${r0(dist(x.total))}</td><td>${off(x.offline)}</td><td>${r0(spd(x.ballSpeed))}</td><td${ce}>${r0(spd(x.clubSpeed))}</td><td${ce}>${x.smash.toFixed(2)}</td>
+        <td>${x.launchDeg.toFixed(1)}°</td><td>${im}</td></tr>`;
+    }).join('');
+    $('shotTable').innerHTML = `<thead><tr><th>Time</th><th>Club</th><th>Carry ${dl()}</th><th>Total</th><th>L/R</th><th>Ball ${sl()}</th><th>Club</th><th>Smash</th><th>Launch</th><th>Impact mm</th></tr></thead><tbody>${body || '<tr><td colspan="10" class="empty">No shots yet</td></tr>'}</tbody>`;
+  }
+
+  // ---------- events ----------
+  const select = (id) => { state.selectedId = id; state.followLatest = state.shots[0] && state.shots[0].id === id; render(); };
+  document.addEventListener('click', (e) => {
+    const t = e.target;
+    const seg = t.closest('.seg button');
+    if (seg) {
+      const which = seg.parentElement.id, v = seg.dataset.v;
+      if (which === 'segDist') { state.units = v; store.set('units', v); }
+      if (which === 'segSpeed') { state.speedUnits = v; store.set('speedUnits', v); }
+      if (which === 'segUse') { state.use = v; store.set('use', v); }
+      if (which === 'segMode') { state.modeFilter = v; store.set('modeFilter', v); }
+      return render();
+    }
+    if (t.id === 'btnStill') { replayStill = !replayStill; return render(); }
+    const tc = t.closest('[data-tclub]');
+    if (tc) { state.trendClub = tc.dataset.tclub; store.set('trendClub', state.trendClub); return render(); }
+    const tm = t.closest('[data-tmetric]');
+    if (tm) { state.trendMetric = tm.dataset.tmetric; store.set('trendMetric', state.trendMetric); return render(); }
+    const chip = t.closest('[data-club]');
+    if (chip) { state.clubFilter = chip.dataset.club; store.set('clubFilter', state.clubFilter); return render(); }
+    const row = t.closest('[data-id]');
+    if (row) return select(row.dataset.id);
+  });
+  document.getElementById('target').addEventListener('change', (e) => {
+    const v = Number(e.target.value);
+    if (v > 0) { state.target = units() === 'yards' ? v * M_PER_YD : v; store.set('target', state.target); render(); }
+  });
+  document.getElementById('btnNew').addEventListener('click', () => {
+    if (state.linked && !confirm('Make a new code? The app will need to be linked again.')) return;
+    startPairing(true);
+  });
+
+  startPairing(false);
+})();
+</script>
+</body>
+</html>
